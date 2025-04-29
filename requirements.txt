@@ -1,4 +1,5 @@
 streamlit
+GDAL
 rasterio
 numpy
 pandas
