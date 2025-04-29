@@ -109,6 +109,7 @@ dependencies:
   - python-tzdata=2023.3=pyhd3eb1b0_0
   - python_abi=3.13=0_cp313
   - pyzmq=26.2.0=py313h6d0c2b6_0
+  - rasterio
   - re2=2024.07.02=h1962661_0
   - readline=8.2=hca72f7f_0
   - requests=2.32.3=py313hecd8cb5_1
