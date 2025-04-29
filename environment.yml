@@ -3,6 +3,7 @@ channels:
   - conda-forge
   - defaults
 dependencies:
+  - python=3.10
   - altair=5.5.0=py313hecd8cb5_0
   - appnope=0.1.4=pyhd8ed1ab_1
   - arrow-cpp=19.0.0=h2a1e5b1_2
