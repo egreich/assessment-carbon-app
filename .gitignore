@@ -1,0 +1,2 @@
+# Suppress computer-specific files
+.DS_Store

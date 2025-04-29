@@ -1,0 +1,8 @@
+name: planet
+channels:
+  - defaults
+dependencies:
+  - pip
+  - streamlit
+  - ipykernel
+prefix: /Users/megreich/opt/anaconda3/envs/planet

@@ -1,0 +1,11 @@
+streamlit
+rasterio
+numpy
+pandas
+matplotlib
+plotly
+scikit-learn
+glob
+os
+re
+time
