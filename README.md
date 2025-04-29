@@ -22,7 +22,7 @@ Narrative Summary: Ties visuals together to emphasize value proposition
 ## How to Launch the App
 The app is hosted on Streamlit Cloud and can be accessed at:
 
-https://planet-carbon-assessment.streamlit.app/
+https://assessment-carbon-app.fly.dev/
 
 ## Files Included
 planet_carbon_app.py — Main application code
