@@ -3,7 +3,6 @@
 
 ## Planet Forest Carbon Project Demo
 Author: Emma Reich
-Product Specialist Interview – Planet Labs
 
 ## Project Overview
 This app demonstrates how Planet's Forest Carbon Diligence product can support forest carbon project developers in Brazil.
@@ -28,7 +27,7 @@ Live App URL Here
 ## Files Included
 planet_carbon_app.py — Main application code
 
-/data/ — Raster layers for carbon density
+data — Raster layers for carbon density, canopy height, and canopy cover
 
 requirements.txt — Python libraries needed to run the app
 
