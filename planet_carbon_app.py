@@ -155,10 +155,10 @@ if animate:
                 # Later years: Change relative to 2013
                 diff = carbon_data - baseline_data
                 cax = ax.imshow(diff, cmap='PuOr', vmin=vmin, vmax=vmax)
-                ax.set_title(f"Carbon Change from 2013 Baseline ({year})", fontsize=16)
+                ax.set_title(f"Carbon Value ($) Change from Baseline ({year})", fontsize=16)
                 ax.axis('off')  # Hide axis ticks and labels
                 cb = plt.colorbar(cax, ax=ax, fraction=0.036, pad=0.04)
-                cb.set_label('Change in Carbon Density (Mg C/ha)')
+                cb.set_label('Change in Carbon Value($/ha)')
 
         # Dynamically update the year slider
         slider_placeholder.slider(
@@ -256,10 +256,10 @@ else: # Else if map is static w/ year selection
             # Later years: Change relative to 2013
             diff = carbon_data - baseline_data
             cax = ax.imshow(diff, cmap='PuOr', vmin=vmin, vmax=vmax)
-            ax.set_title(f"Carbon Change from 2013 Baseline ({selected_year})", fontsize=16)
+            ax.set_title(f"Carbon Value ($) Change from Baseline ({selected_year})", fontsize=16)
             ax.axis('off')  # Hide axis ticks and labels
             cb = plt.colorbar(cax, ax=ax, fraction=0.036, pad=0.04)
-            cb.set_label('Change in Carbon Density (Mg C/ha)')
+            cb.set_label('Change in Carbon Value($/ha)')
 
 
     st.pyplot(fig)
