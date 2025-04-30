@@ -43,4 +43,4 @@ Trend Analysis: Linear regression with scikit-learn to project future carbon acc
 
 Visualization: Interactive maps and plots using matplotlib and plotly
 
-Deployment: Hosted via Streamlit Community Cloud for easy access
+Deployment: Hosted via Docker and fly.io for easy access

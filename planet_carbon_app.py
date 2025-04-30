@@ -334,8 +334,8 @@ summary_data = {
     ],
     "Value Equivalent": [
         "NA",
-        f" ${mean_carbon_dollar:0f} /ha",
-        f" ${predicted_carbon_dollar:0f}  /ha",
+        f" ${mean_carbon_dollar:.0f} /ha",
+        f" ${predicted_carbon_dollar:.0f}  /ha",
         f" ${annual_change_dollar:.0f}  /ha/year",
         f" ${total_change_dollar:.0f}  /ha/year",
     ]
