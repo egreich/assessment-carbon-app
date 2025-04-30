@@ -20,7 +20,7 @@ Summary Statistics: See key metrics relevant for forest carbon project planning
 Narrative Summary: Ties visuals together to emphasize value proposition
 
 ## How to Launch the App
-The app is hosted on Streamlit Cloud and can be accessed at:
+The app is hosted on fly.io via Docker and can be accessed at:
 
 https://assessment-carbon-app.fly.dev/
 
