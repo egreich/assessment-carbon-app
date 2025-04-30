@@ -8,6 +8,7 @@ import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
 import plotly.express as px
+import plotly.graph_objects as go
 from sklearn.linear_model import LinearRegression
 import glob
 import os
@@ -57,12 +58,12 @@ data_folder = "data"
 
 years, mean_carbon, raster_layers = load_carbon_data(data_folder)
 
-# 4. Introduction
-st.markdown("---")
+# 4. Narrative
 st.markdown("""
 #### Why Planet's Data Matters
 Planet's Forest Carbon Diligence product provides reliable, high-resolution data critical for identifying and monitoring carbon stock changes over time. With consistent coverage and clear trends in forest carbon accumulation/loss, developers can confidently select, validate, and manage forest carbon projects in Brazil.
 """)
+st.markdown("---")
 
 # 5. Show Animation
 st.subheader("Carbon Stock Animation")
@@ -194,7 +195,7 @@ else:
         st.markdown("<div style='text-align:center; font-size:14px;'>🔴 Perda de carbono &nbsp;&nbsp;|&nbsp;&nbsp; 🟢 Ganho de carbono<br>Comparado ao ano de base (2013)</div>", unsafe_allow_html=True)
 
 
-
+# 6. Calculate net carbon change
 first_year = min(raster_layers.keys())
 last_year = max(raster_layers.keys())
 
@@ -209,8 +210,24 @@ net_change = last_carbon[valid_mask] - first_carbon[valid_mask]
 total_change = np.nanmean(net_change)
 annual_change = total_change / (last_year - first_year)
 
-# 6. Show Time Series + Projection
+# 7. Show Time Series + Projection
 st.subheader("Carbon Stock Over Time and Future Projection")
+
+carbon_price = st.slider(
+    label="Carbon Price ($ per Mg CO₂e)",
+    min_value=5,
+    max_value=100,
+    value=15,  # default is $15
+    step=1,
+    help="Adjust to reflect current or projected market value per metric ton CO₂ equivalent."
+)
+
+with st.expander("💡 What does this price mean?", expanded=False):
+    st.markdown(f"""
+    The carbon price reflects the market value of avoiding or removing one metric ton of CO₂ emissions.
+    We're currently assuming **${carbon_price} per Mg CO₂e**, which is a typical value for voluntary carbon markets.
+    You can adjust the slider above to explore how different carbon prices affect the estimated value of your forest's carbon stocks.
+    """)
 
 # Prepare data
 df = pd.DataFrame({'Year': years, 'MeanCarbon': mean_carbon})
@@ -229,24 +246,106 @@ predicted_carbon = model.predict(future_years.reshape(-1, 1))
 future_df = pd.DataFrame({'Year': future_years, 'MeanCarbon': predicted_carbon})
 full_df = pd.concat([df, future_df])
 
-# Plotly Interactive Plot
-fig2 = px.line(full_df, x='Year', y='MeanCarbon', markers=True,
-              labels={'MeanCarbon': 'Mean Carbon Density (Mg C/ha)'},
-              title='Observed and Projected Carbon Stock')
-fig2.add_vline(x=max(years), line_dash='dash', line_color='gray')
-st.plotly_chart(fig2)
+# Compute $ value of carbon loss from baseline year
+baseline_carbon = full_df['MeanCarbon'].iloc[0]
+carbon_loss = full_df['MeanCarbon'] - baseline_carbon
+dollar_loss = carbon_loss * 3.67 * carbon_price  # $15/ton CO₂e
+full_df['DollarValue'] = dollar_loss
 
-# 7. Tabular Summary
+# Plotly Dual-Axis Interactive Plot
+fig2 = go.Figure()
+
+# Line plot: Carbon stock
+fig2.add_trace(go.Scatter(
+    x=full_df['Year'], y=full_df['MeanCarbon'],
+    mode='lines+markers',
+    name='Carbon Density (Mg C/ha)',
+    line=dict(color='green'),
+    yaxis='y1'
+))
+
+# Bar plot: $ value
+fig2.add_trace(go.Bar(
+    x=full_df['Year'], y=full_df['DollarValue'],
+    name='Carbon Value ($/ha)',
+    marker_color='rgba(0, 123, 255, 0.5)',
+    yaxis='y2'
+))
+
+# Add vertical line to mark projection start
+fig2.add_vline(x=max(years), line_dash='dash', line_color='gray')
+
+# Layout with dual y-axes
+fig2.update_layout(
+    title='Observed and Projected Carbon Stock with Estimated Dollar Value',
+    xaxis=dict(title='Year'),
+    yaxis=dict(
+        title=dict(
+            text='Carbon Density (Mg C/ha)',
+            font=dict(color='green')
+        ),
+        tickfont=dict(color='green'),
+    ),
+    yaxis2=dict(
+        title=dict(
+            text='Carbon Value ($/ha)',
+            font=dict(color='rgba(0, 123, 255, 1)')
+        ),
+        tickfont=dict(color='rgba(0, 123, 255, 1)'),
+        overlaying='y',
+        side='right'
+    ),
+    legend=dict(
+    x=0,
+    y=-0.3,
+    xanchor='left',
+    yanchor='top',
+    orientation='h'
+    ),
+    bargap=0.2,
+)
+
+st.plotly_chart(fig2, use_container_width=True)
+
+# 8. Tabular Summary
+
+# Calculate Dollar Equivalent
+# 1 Mg C = 3.67 Mg Co2 emission
+# Carbon offset price is ~ $15 per ton Co2 emission
+avg_carbon = np.nanmean(mean_carbon)
+mean_carbon_dollar = avg_carbon * 3.67 * carbon_price
+predicted_carbon_dollar = predicted_carbon[-1] * 3.67 * carbon_price
+annual_change_dollar = annual_change * 3.67 * carbon_price
+total_change_dollar = total_change * 3.67 * carbon_price
+
 st.subheader("Summary Statistics")
 summary_data = {
-    "Statistic": ["Total Years Observed", "Average Carbon Density (2013-2023)", "Projected Carbon Density (2033)", "Average Annual Change", "Total Net Change"],
-    "Value": [
-        len(years),
-        f"{np.nanmean(mean_carbon):.2f} Mg C/ha",
+    "Statistic": ["Total Years Observed", 
+                  "Average Carbon Density (2013-2023)", 
+                  "Projected Carbon Density (2033)", 
+                  "Average Annual Change", 
+                  "Total Net Change (2013-2023)"],
+    "Carbon Density": [
+        f"{len(years)} years",
+        f"{avg_carbon:.2f} Mg C/ha",
         f"{predicted_carbon[-1]:.2f} Mg C/ha",
         f"{annual_change:.2f} Mg C/ha/year",
         f"{total_change:.2f} Mg C/ha/year",
+    ],
+    "Value Equivalent": [
+        "NA",
+        f" ${mean_carbon_dollar:0f} /ha",
+        f" ${predicted_carbon_dollar:0f}  /ha",
+        f" ${annual_change_dollar:.0f}  /ha/year",
+        f" ${total_change_dollar:.0f}  /ha/year",
     ]
 }
 summary_df = pd.DataFrame(summary_data)
-st.dataframe(summary_df)
+
+# Highlight the "Value Equivalent" column
+styled_df = summary_df.style.apply(
+    lambda x: ["background-color: #cfe2ff" if x.name == "Value Equivalent" else "" for _ in x],  # pastel green
+    axis=0
+)
+
+st.dataframe(styled_df, use_container_width=True)
