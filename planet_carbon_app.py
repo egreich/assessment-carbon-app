@@ -1,5 +1,6 @@
 ### streamlit app for planet
 # To run locally in terminal: streamlit run planet_carbon_app.py
+# To view online, visit https://assessment-carbon-app.fly.dev/
 
 # 1. Import Libraries
 import streamlit as st
@@ -55,8 +56,9 @@ st.markdown("---")
 # Path to your raster data folder
 data_folder = "data" 
 
-years, mean_carbon, raster_layers = load_carbon_data(data_folder)
+years, mean_carbon, raster_layers = load_carbon_data(data_folder) # main data we're working with
 
+# Adjsutable "carbon price" slider. Can be modified during demo for most accurate estimates.
 carbon_price = st.slider(
     label="Carbon Price ($ per Mg CO₂e) - adjusts estimated carbon price for all plots and tables",
     min_value=5,
@@ -66,6 +68,7 @@ carbon_price = st.slider(
     help="Adjust to reflect current or projected market value per metric ton CO₂ equivalent."
 )
 
+# Explain assumptions for the carbon price slider
 with st.expander("💡 What does this price mean?", expanded=False):
     st.markdown(f"""
     The carbon price reflects the market value of avoiding or removing one metric ton of CO₂ emissions.
@@ -77,6 +80,7 @@ with st.expander("💡 What does this price mean?", expanded=False):
 st.subheader("Carbon Value Density Decrease from 2013-2023")
 
 # User option: change plot view + animate or manual
+# four potential map options based on change in value, value density, change in carbon density, or raw carbon density
 view_option = st.radio("View Mode:", ["Carbon Value Gain/Loss ($/ha)", "Carbon Value Density ($/ha)", "Carbon Gain/Loss (Mg C/ha)", "Carbon Density (Mg C/ha)",])
 animate = st.checkbox("Play animation over time")
 
@@ -85,8 +89,7 @@ if animate:
     slider_placeholder = st.empty()    # For dynamic year slider
     #progress_bar = st.progress(0)  # If we want to create a more traditional progress bar
     placeholder = st.empty()
-    caption1_placeholder = st.empty()
-    caption2_placeholder = st.empty()
+    caption1_placeholder = st.empty() # for gain/loss caption
 
     years_sorted = sorted(raster_layers.keys())
     total_frames = len(years_sorted)
@@ -105,7 +108,7 @@ if animate:
         fig, ax = plt.subplots(figsize=(10, 8))
 
         if view_option == "Carbon Gain/Loss (Mg C/ha)":
-            if year == min(years_sorted):
+            if year == min(years_sorted): # If we are on year 1 (2013), then there is no change
                 # 2013: Show all-zero (neutral) map
                 zero_change = np.zeros_like(carbon_data)
                 cax = ax.imshow(zero_change, cmap='BrBG', vmin=vmin, vmax=vmax)
@@ -138,10 +141,10 @@ if animate:
             cb = plt.colorbar(cax, ax=ax, fraction=0.036, pad=0.04)
             cb.set_label('Carbon Value Density ($/ha)')
         if view_option == "Carbon Value Gain/Loss ($/ha)":
-            # Convert carbon rasters to dollar value
+            # Convert carbon rasters to change in dollar value
             carbon_value_raster = carbon_data * 3.67 * carbon_price  # still in $/ha
-            if year == min(years_sorted):
-                # 2013: Show all-zero (neutral) map
+            if year == min(years_sorted): # If we are on year 1 (2013), then there is no change
+                # 2013: Show all-zero (neutral) map 
                 zero_change = np.zeros_like(carbon_value_raster)
                 cax = ax.imshow(zero_change, cmap='PuOr', vmin=vmin, vmax=vmax)
                 ax.set_title(f"Carbon Value ($) Change from Baseline (2013)", fontsize=16)
@@ -184,10 +187,8 @@ if animate:
 
         if view_option == "Carbon Density (Mg C/ha)":
             caption1_placeholder.empty()  # hide caption in non-diff mode
-            caption2_placeholder.empty()  # hide caption in non-diff mode
         if view_option == "Carbon Value Density ($/ha)":
             caption1_placeholder.empty()  # hide caption in non-diff mode
-            caption2_placeholder.empty()  # hide caption in non-diff mode
 
 
         #progress_bar.progress((i + 1) / total_frames)  # Update progress bar
@@ -207,7 +208,7 @@ else: # Else if map is static w/ year selection
     fig, ax = plt.subplots(figsize=(10, 8))
 
     if view_option == "Carbon Gain/Loss (Mg C/ha)":
-        if selected_year == min(years):
+        if selected_year == min(years): # If we are on year 1 (2013), then there is no change
             # 2013: Show all-zero (neutral) map
             zero_change = np.zeros_like(carbon_data)
             cax = ax.imshow(zero_change, cmap='BrBG', vmin=vmin, vmax=vmax)
@@ -241,9 +242,9 @@ else: # Else if map is static w/ year selection
         cb = plt.colorbar(cax, ax=ax, fraction=0.036, pad=0.04)
         cb.set_label('Carbon Value ($/ha)')
     if view_option == "Carbon Value Gain/Loss ($/ha)":
-        # Convert carbon rasters to dollar value
+        # Convert carbon rasters to change in dollar value
         carbon_value_raster = carbon_data * 3.67 * carbon_price  # still in $/ha
-        if selected_year == min(years):
+        if selected_year == min(years): # If we are on year 1 (2013), then there is no change
             # 2013: Show all-zero (neutral) map
             zero_change = np.zeros_like(carbon_value_raster)
             cax = ax.imshow(zero_change, cmap='PuOr', vmin=vmin, vmax=vmax)
@@ -372,7 +373,7 @@ st.plotly_chart(fig2, use_container_width=True)
 
 # Calculate Dollar Equivalent
 # 1 Mg C = 3.67 Mg Co2 emission
-# Carbon offset price is ~ $15 per ton Co2 emission
+# Carbon offset price is ~ $15 per ton Co2 emission, but slider can also adjust this
 avg_carbon = np.nanmean(mean_carbon)
 mean_carbon_dollar = avg_carbon * 3.67 * carbon_price
 predicted_carbon_dollar = predicted_carbon[-1] * 3.67 * carbon_price
