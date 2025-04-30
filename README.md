@@ -35,6 +35,10 @@ Dockerfile — Dependancies + environment setup
 
 README.md — Project description
 
+.gitignore - ignores computer-specific files
+
+.fly.toml - fly.io configuration
+
 ## Methods Summary
 
 Raster Processing: Using rasterio to load, mask, and process TIFF files

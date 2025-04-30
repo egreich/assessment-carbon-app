@@ -15,7 +15,6 @@ import os
 import re # for extract_year
 import time # for automatic raster animation
 
-
 # 2. Load and Process Raster Data
 @st.cache_data
 
@@ -59,13 +58,14 @@ data_folder = "data"
 years, mean_carbon, raster_layers = load_carbon_data(data_folder)
 
 carbon_price = st.slider(
-    label="Carbon Price ($ per Mg CO₂e)",
+    label="Carbon Price ($ per Mg CO₂e) - adjusts estimated carbon price for all plots and tables",
     min_value=5,
     max_value=100,
     value=15,  # default is $15
     step=1,
     help="Adjust to reflect current or projected market value per metric ton CO₂ equivalent."
 )
+
 with st.expander("💡 What does this price mean?", expanded=False):
     st.markdown(f"""
     The carbon price reflects the market value of avoiding or removing one metric ton of CO₂ emissions.
@@ -76,8 +76,8 @@ with st.expander("💡 What does this price mean?", expanded=False):
 # 4. Show Animation
 st.subheader("Carbon Value Density Decrease from 2013-2023")
 
-# User option: animate or manual
-view_option = st.radio("View Mode:", ["Carbon Value Density ($/ha)", "Carbon Density (Mg C/ha)", "Carbon Gain/Loss (Mg C/ha)"])
+# User option: change plot view + animate or manual
+view_option = st.radio("View Mode:", ["Carbon Value Gain/Loss ($/ha)", "Carbon Value Density ($/ha)", "Carbon Gain/Loss (Mg C/ha)", "Carbon Density (Mg C/ha)",])
 animate = st.checkbox("Play animation over time")
 
 if animate:
@@ -103,12 +103,12 @@ if animate:
         vmax = 10
         
         fig, ax = plt.subplots(figsize=(10, 8))
-    
+
         if view_option == "Carbon Gain/Loss (Mg C/ha)":
             if year == min(years_sorted):
                 # 2013: Show all-zero (neutral) map
                 zero_change = np.zeros_like(carbon_data)
-                cax = ax.imshow(zero_change, cmap='RdYlGn', vmin=vmin, vmax=vmax)
+                cax = ax.imshow(zero_change, cmap='BrBG', vmin=vmin, vmax=vmax)
                 ax.set_title(f"Carbon Change from Baseline (2013)", fontsize=16)
                 ax.axis('off')  # Hide axis ticks and labels
                 cb = plt.colorbar(cax, ax=ax, fraction=0.036, pad=0.04)
@@ -116,7 +116,7 @@ if animate:
             else:
                 # Later years: Change relative to 2013
                 diff = carbon_data - baseline_data
-                cax = ax.imshow(diff, cmap='RdYlGn', vmin=vmin, vmax=vmax)
+                cax = ax.imshow(diff, cmap='BrBG', vmin=vmin, vmax=vmax)
                 ax.set_title(f"Carbon Change from 2013 Baseline ({year})", fontsize=16)
                 ax.axis('off')  # Hide axis ticks and labels
                 cb = plt.colorbar(cax, ax=ax, fraction=0.036, pad=0.04)
@@ -129,15 +129,33 @@ if animate:
             cb = plt.colorbar(cax, ax=ax, fraction=0.036, pad=0.04)
             cb.set_label('Carbon Density (Mg C/ha)')
         if view_option == "Carbon Value Density ($/ha)":
-            # Convert carbon raster (e.g., from 2023) to dollar value
-            # raster_2023: 2D array in Mg C/ha
+            # Convert carbon rasters to dollar value
             carbon_value_raster = carbon_data * 3.67 * carbon_price  # still in $/ha
             # Plot normal carbon density
             cax = ax.imshow(carbon_value_raster, cmap='cividis', vmin=np.nanmin(carbon_value_raster), vmax=np.nanmax(carbon_value_raster))
             ax.set_title(f"Carbon Value ({year})", fontsize=16)
             ax.axis('off')  # Hide axis ticks and labels
             cb = plt.colorbar(cax, ax=ax, fraction=0.036, pad=0.04)
-            cb.set_label('Carbon Value ($/ha)')
+            cb.set_label('Carbon Value Density ($/ha)')
+        if view_option == "Carbon Value Gain/Loss ($/ha)":
+            # Convert carbon rasters to dollar value
+            carbon_value_raster = carbon_data * 3.67 * carbon_price  # still in $/ha
+            if year == min(years_sorted):
+                # 2013: Show all-zero (neutral) map
+                zero_change = np.zeros_like(carbon_value_raster)
+                cax = ax.imshow(zero_change, cmap='PuOr', vmin=vmin, vmax=vmax)
+                ax.set_title(f"Carbon Value ($) Change from Baseline (2013)", fontsize=16)
+                ax.axis('off')  # Hide axis ticks and labels
+                cb = plt.colorbar(cax, ax=ax, fraction=0.036, pad=0.04)
+                cb.set_label('Change in Carbon Value($/ha)')
+            else:
+                # Later years: Change relative to 2013
+                diff = carbon_data - baseline_data
+                cax = ax.imshow(diff, cmap='PuOr', vmin=vmin, vmax=vmax)
+                ax.set_title(f"Carbon Change from 2013 Baseline ({year})", fontsize=16)
+                ax.axis('off')  # Hide axis ticks and labels
+                cb = plt.colorbar(cax, ax=ax, fraction=0.036, pad=0.04)
+                cb.set_label('Change in Carbon Density (Mg C/ha)')
 
         # Dynamically update the year slider
         slider_placeholder.slider(
@@ -154,14 +172,16 @@ if animate:
         if view_option == "Carbon Gain/Loss (Mg C/ha)":
             # Label carbon gain or loss
             caption1_placeholder.markdown(
-            "<div style='text-align:center; font-size:14px;'>Red = carbon loss &nbsp;&nbsp;|&nbsp;&nbsp; Green = carbon gain<br>Compared to 2013 baseline</div>",
+            "<div style='text-align:center; font-size:14px;'>Brown = carbon loss &nbsp;&nbsp;|&nbsp;&nbsp; Green = carbon gain<br>Compared to 2013 baseline</div>",
             unsafe_allow_html=True
             )
-            # Label carbon gain or loss in Portugese
-            caption2_placeholder.markdown(
-            "<div style='text-align:center; font-size:14px;'>🔴 Perda de carbono &nbsp;&nbsp;|&nbsp;&nbsp; 🟢 Ganho de carbono<br>Comparado ao ano de base (2013)</div>",
+        if view_option == "Carbon Value Gain/Loss ($/ha)":
+            # Label carbon value gain or loss
+            caption1_placeholder.markdown(
+            "<div style='text-align:center; font-size:14px;'>Orange = carbon value loss &nbsp;&nbsp;|&nbsp;&nbsp; Purple = carbon value gain<br>Compared to 2013 baseline</div>",
             unsafe_allow_html=True
             )
+
         if view_option == "Carbon Density (Mg C/ha)":
             caption1_placeholder.empty()  # hide caption in non-diff mode
             caption2_placeholder.empty()  # hide caption in non-diff mode
@@ -174,7 +194,8 @@ if animate:
         time.sleep(.5)  # Pause .5 second between frames
 
         previous_data = carbon_data.copy()  # Save for next diff
-else:
+
+else: # Else if map is static w/ year selection
     selected_year = st.slider("Select a year:", min_value=min(years), max_value=max(years), value=max(years))
     carbon_data = raster_layers[selected_year]
     baseline_data = raster_layers[2013] # for carbon accumulation or decline
@@ -189,7 +210,7 @@ else:
         if selected_year == min(years):
             # 2013: Show all-zero (neutral) map
             zero_change = np.zeros_like(carbon_data)
-            cax = ax.imshow(zero_change, cmap='RdYlGn', vmin=vmin, vmax=vmax)
+            cax = ax.imshow(zero_change, cmap='BrBG', vmin=vmin, vmax=vmax)
             ax.set_title(f"Carbon Change from Baseline (2013)", fontsize=16)
             ax.axis('off')  # Hide axis ticks and labels
             cb = plt.colorbar(cax, ax=ax, fraction=0.036, pad=0.04)
@@ -197,7 +218,7 @@ else:
         else:
             # Later years: Change relative to 2013
             diff = carbon_data - baseline_data
-            cax = ax.imshow(diff, cmap='RdYlGn', vmin=vmin, vmax=vmax)
+            cax = ax.imshow(diff, cmap='BrBG', vmin=vmin, vmax=vmax)
             ax.set_title(f"Carbon Change from 2013 Baseline ({selected_year})", fontsize=16)
             ax.axis('off')  # Hide axis ticks and labels
             cb = plt.colorbar(cax, ax=ax, fraction=0.036, pad=0.04)
@@ -219,14 +240,36 @@ else:
         ax.axis('off')  # Hide axis ticks and labels
         cb = plt.colorbar(cax, ax=ax, fraction=0.036, pad=0.04)
         cb.set_label('Carbon Value ($/ha)')
+    if view_option == "Carbon Value Gain/Loss ($/ha)":
+        # Convert carbon rasters to dollar value
+        carbon_value_raster = carbon_data * 3.67 * carbon_price  # still in $/ha
+        if selected_year == min(years):
+            # 2013: Show all-zero (neutral) map
+            zero_change = np.zeros_like(carbon_value_raster)
+            cax = ax.imshow(zero_change, cmap='PuOr', vmin=vmin, vmax=vmax)
+            ax.set_title(f"Carbon Value ($) Change from Baseline (2013)", fontsize=16)
+            ax.axis('off')  # Hide axis ticks and labels
+            cb = plt.colorbar(cax, ax=ax, fraction=0.036, pad=0.04)
+            cb.set_label('Change in Carbon Value($/ha)')
+        else:
+            # Later years: Change relative to 2013
+            diff = carbon_data - baseline_data
+            cax = ax.imshow(diff, cmap='PuOr', vmin=vmin, vmax=vmax)
+            ax.set_title(f"Carbon Change from 2013 Baseline ({selected_year})", fontsize=16)
+            ax.axis('off')  # Hide axis ticks and labels
+            cb = plt.colorbar(cax, ax=ax, fraction=0.036, pad=0.04)
+            cb.set_label('Change in Carbon Density (Mg C/ha)')
 
 
     st.pyplot(fig)
 
     if view_option == "Carbon Gain/Loss (Mg C/ha)":
         # Label carbon gain or loss
-        st.markdown("<div style='text-align:center; font-size:14px;'>Red = carbon loss &nbsp;&nbsp;|&nbsp;&nbsp; Green = carbon gain<br>Compared to 2013 baseline</div>", unsafe_allow_html=True)
-        st.markdown("<div style='text-align:center; font-size:14px;'>🔴 Perda de carbono &nbsp;&nbsp;|&nbsp;&nbsp; 🟢 Ganho de carbono<br>Comparado ao ano de base (2013)</div>", unsafe_allow_html=True)
+        st.markdown("<div style='text-align:center; font-size:14px;'>Brown = carbon loss &nbsp;&nbsp;|&nbsp;&nbsp; Green = carbon gain<br>Compared to 2013 baseline</div>", unsafe_allow_html=True)
+    if view_option == "Carbon Value Gain/Loss ($/ha)":
+        # Label carbon gain or loss
+        st.markdown("<div style='text-align:center; font-size:14px;'>Purple = carbon value loss &nbsp;&nbsp;|&nbsp;&nbsp; Orange = carbon value gain<br>Compared to 2013 baseline</div>", unsafe_allow_html=True)
+
 
 
 # 5. Calculate net carbon change
@@ -285,7 +328,7 @@ fig2.add_trace(go.Scatter(
 # Bar plot: $ value
 fig2.add_trace(go.Bar(
     x=full_df['Year'], y=full_df['DollarValue'],
-    name='Carbon Value ($/ha)',
+    name='Carbon Value Density ($/ha)',
     marker_color='rgba(0, 123, 255, 0.5)',
     yaxis='y2'
 ))
@@ -338,20 +381,18 @@ total_change_dollar = total_change * 3.67 * carbon_price
 
 st.subheader("Summary Statistics")
 summary_data = {
-    "Statistic": ["Total Years Observed", 
+    "Statistic": [
                   "Average Carbon Density (2013-2023)", 
                   "Projected Carbon Density (2033)", 
                   "Average Annual Change", 
                   "Total Net Change (2013-2023)"],
     "Carbon Density": [
-        f"{len(years)} years",
         f"{avg_carbon:.2f} Mg C/ha",
         f"{predicted_carbon[-1]:.2f} Mg C/ha",
         f"{annual_change:.2f} Mg C/ha/year",
         f"{total_change:.2f} Mg C/ha/year",
     ],
     "Value Equivalent": [
-        "NA",
         f" ${mean_carbon_dollar:.0f} /ha",
         f" ${predicted_carbon_dollar:.0f}  /ha",
         f" ${annual_change_dollar:.0f}  /ha/year",
@@ -361,10 +402,11 @@ summary_data = {
 summary_df = pd.DataFrame(summary_data)
 
 # Highlight the "Value Equivalent" column
-styled_df = summary_df.style.apply(
-    lambda x: ["background-color: #cfe2ff" if x.name == "Value Equivalent" else "" for _ in x],  # pastel green
-    axis=0
-)
+def highlight_column(s):
+    return ['background-color: #e8f5e9' for _ in s]  # very light green
+
+styled_df = summary_df.style.apply(highlight_column, subset=['Value Equivalent'])
+
 
 st.dataframe(styled_df, use_container_width=True)
 
