@@ -58,18 +58,26 @@ data_folder = "data"
 
 years, mean_carbon, raster_layers = load_carbon_data(data_folder)
 
-# 4. Narrative
-st.markdown("""
-#### Why Planet's Data Matters
-Planet's Forest Carbon Diligence product provides reliable, high-resolution data critical for identifying and monitoring carbon stock changes over time. With consistent coverage and clear trends in forest carbon accumulation/loss, developers can confidently select, validate, and manage forest carbon projects in Brazil.
-""")
-st.markdown("---")
+carbon_price = st.slider(
+    label="Carbon Price ($ per Mg CO₂e)",
+    min_value=5,
+    max_value=100,
+    value=15,  # default is $15
+    step=1,
+    help="Adjust to reflect current or projected market value per metric ton CO₂ equivalent."
+)
+with st.expander("💡 What does this price mean?", expanded=False):
+    st.markdown(f"""
+    The carbon price reflects the market value of avoiding or removing one metric ton of CO₂ emissions.
+    We're currently assuming **${carbon_price} per Mg CO₂e**, which is a typical value for voluntary carbon markets.
+    You can adjust the slider above to explore how different carbon prices affect the estimated value of your forest's carbon stocks.
+    """)
 
-# 5. Show Animation
-st.subheader("Carbon Stock Animation")
+# 4. Show Animation
+st.subheader("Carbon Value Density Decrease from 2013-2023")
 
 # User option: animate or manual
-diff_mode = st.checkbox("Show Carbon Gain/Loss Instead of Raw Carbon Density")
+view_option = st.radio("View Mode:", ["Carbon Value Density ($/ha)", "Carbon Density (Mg C/ha)", "Carbon Gain/Loss (Mg C/ha)"])
 animate = st.checkbox("Play animation over time")
 
 if animate:
@@ -96,12 +104,13 @@ if animate:
         
         fig, ax = plt.subplots(figsize=(10, 8))
     
-        if diff_mode:
+        if view_option == "Carbon Gain/Loss (Mg C/ha)":
             if year == min(years_sorted):
                 # 2013: Show all-zero (neutral) map
                 zero_change = np.zeros_like(carbon_data)
                 cax = ax.imshow(zero_change, cmap='RdYlGn', vmin=vmin, vmax=vmax)
                 ax.set_title(f"Carbon Change from Baseline (2013)", fontsize=16)
+                ax.axis('off')  # Hide axis ticks and labels
                 cb = plt.colorbar(cax, ax=ax, fraction=0.036, pad=0.04)
                 cb.set_label('Change in Carbon Density (Mg C/ha)')
             else:
@@ -109,14 +118,26 @@ if animate:
                 diff = carbon_data - baseline_data
                 cax = ax.imshow(diff, cmap='RdYlGn', vmin=vmin, vmax=vmax)
                 ax.set_title(f"Carbon Change from 2013 Baseline ({year})", fontsize=16)
+                ax.axis('off')  # Hide axis ticks and labels
                 cb = plt.colorbar(cax, ax=ax, fraction=0.036, pad=0.04)
                 cb.set_label('Change in Carbon Density (Mg C/ha)')
-        else:
+        if view_option == "Carbon Density (Mg C/ha)":
             # Plot normal carbon density
             cax = ax.imshow(carbon_data, cmap='viridis', vmin=np.nanmin(carbon_data), vmax=np.nanmax(carbon_data))
             ax.set_title(f"Aboveground Carbon Density ({year})", fontsize=16)
+            ax.axis('off')  # Hide axis ticks and labels
             cb = plt.colorbar(cax, ax=ax, fraction=0.036, pad=0.04)
             cb.set_label('Carbon Density (Mg C/ha)')
+        if view_option == "Carbon Value Density ($/ha)":
+            # Convert carbon raster (e.g., from 2023) to dollar value
+            # raster_2023: 2D array in Mg C/ha
+            carbon_value_raster = carbon_data * 3.67 * carbon_price  # still in $/ha
+            # Plot normal carbon density
+            cax = ax.imshow(carbon_value_raster, cmap='cividis', vmin=np.nanmin(carbon_value_raster), vmax=np.nanmax(carbon_value_raster))
+            ax.set_title(f"Carbon Value ({year})", fontsize=16)
+            ax.axis('off')  # Hide axis ticks and labels
+            cb = plt.colorbar(cax, ax=ax, fraction=0.036, pad=0.04)
+            cb.set_label('Carbon Value ($/ha)')
 
         # Dynamically update the year slider
         slider_placeholder.slider(
@@ -127,12 +148,10 @@ if animate:
             disabled=True  # Disable manual dragging during animation
         )
         
-        ax.axis('off') # Hide axis ticks and labels
-        
         # Update the placeholder with the new figure
         placeholder.pyplot(fig)
         
-        if diff_mode:
+        if view_option == "Carbon Gain/Loss (Mg C/ha)":
             # Label carbon gain or loss
             caption1_placeholder.markdown(
             "<div style='text-align:center; font-size:14px;'>Red = carbon loss &nbsp;&nbsp;|&nbsp;&nbsp; Green = carbon gain<br>Compared to 2013 baseline</div>",
@@ -143,9 +162,13 @@ if animate:
             "<div style='text-align:center; font-size:14px;'>🔴 Perda de carbono &nbsp;&nbsp;|&nbsp;&nbsp; 🟢 Ganho de carbono<br>Comparado ao ano de base (2013)</div>",
             unsafe_allow_html=True
             )
-        else:
+        if view_option == "Carbon Density (Mg C/ha)":
             caption1_placeholder.empty()  # hide caption in non-diff mode
             caption2_placeholder.empty()  # hide caption in non-diff mode
+        if view_option == "Carbon Value Density ($/ha)":
+            caption1_placeholder.empty()  # hide caption in non-diff mode
+            caption2_placeholder.empty()  # hide caption in non-diff mode
+
 
         #progress_bar.progress((i + 1) / total_frames)  # Update progress bar
         time.sleep(.5)  # Pause .5 second between frames
@@ -162,7 +185,7 @@ else:
 
     fig, ax = plt.subplots(figsize=(10, 8))
 
-    if diff_mode:
+    if view_option == "Carbon Gain/Loss (Mg C/ha)":
         if selected_year == min(years):
             # 2013: Show all-zero (neutral) map
             zero_change = np.zeros_like(carbon_data)
@@ -179,23 +202,34 @@ else:
             ax.axis('off')  # Hide axis ticks and labels
             cb = plt.colorbar(cax, ax=ax, fraction=0.036, pad=0.04)
             cb.set_label('Change in Carbon Density (Mg C/ha)')
-    else:
+    if view_option == "Carbon Density (Mg C/ha)":
         # Plot normal carbon density
         cax = ax.imshow(carbon_data, cmap='viridis', vmin=np.nanmin(carbon_data), vmax=np.nanmax(carbon_data))
         ax.set_title(f"Aboveground Carbon Density ({selected_year})", fontsize=16)
         ax.axis('off')  # Hide axis ticks and labels
         cb = plt.colorbar(cax, ax=ax, fraction=0.036, pad=0.04)
         cb.set_label('Carbon Density (Mg C/ha)')
+    if view_option == "Carbon Value Density ($/ha)":
+        # Convert carbon raster (e.g., from 2023) to dollar value
+        # raster_2023: 2D array in Mg C/ha
+        carbon_value_raster = carbon_data * 3.67 * carbon_price  # still in $/ha
+        # Plot normal carbon density
+        cax = ax.imshow(carbon_value_raster, cmap='cividis', vmin=np.nanmin(carbon_value_raster), vmax=np.nanmax(carbon_value_raster))
+        ax.set_title(f"Carbon Value ({selected_year})", fontsize=16)
+        ax.axis('off')  # Hide axis ticks and labels
+        cb = plt.colorbar(cax, ax=ax, fraction=0.036, pad=0.04)
+        cb.set_label('Carbon Value ($/ha)')
+
 
     st.pyplot(fig)
 
-    if diff_mode:
+    if view_option == "Carbon Gain/Loss (Mg C/ha)":
         # Label carbon gain or loss
         st.markdown("<div style='text-align:center; font-size:14px;'>Red = carbon loss &nbsp;&nbsp;|&nbsp;&nbsp; Green = carbon gain<br>Compared to 2013 baseline</div>", unsafe_allow_html=True)
         st.markdown("<div style='text-align:center; font-size:14px;'>🔴 Perda de carbono &nbsp;&nbsp;|&nbsp;&nbsp; 🟢 Ganho de carbono<br>Comparado ao ano de base (2013)</div>", unsafe_allow_html=True)
 
 
-# 6. Calculate net carbon change
+# 5. Calculate net carbon change
 first_year = min(raster_layers.keys())
 last_year = max(raster_layers.keys())
 
@@ -210,24 +244,8 @@ net_change = last_carbon[valid_mask] - first_carbon[valid_mask]
 total_change = np.nanmean(net_change)
 annual_change = total_change / (last_year - first_year)
 
-# 7. Show Time Series + Projection
+# 6. Show Time Series + Projection
 st.subheader("Carbon Stock Over Time and Future Projection")
-
-carbon_price = st.slider(
-    label="Carbon Price ($ per Mg CO₂e)",
-    min_value=5,
-    max_value=100,
-    value=15,  # default is $15
-    step=1,
-    help="Adjust to reflect current or projected market value per metric ton CO₂ equivalent."
-)
-
-with st.expander("💡 What does this price mean?", expanded=False):
-    st.markdown(f"""
-    The carbon price reflects the market value of avoiding or removing one metric ton of CO₂ emissions.
-    We're currently assuming **${carbon_price} per Mg CO₂e**, which is a typical value for voluntary carbon markets.
-    You can adjust the slider above to explore how different carbon prices affect the estimated value of your forest's carbon stocks.
-    """)
 
 # Prepare data
 df = pd.DataFrame({'Year': years, 'MeanCarbon': mean_carbon})
@@ -307,7 +325,7 @@ fig2.update_layout(
 
 st.plotly_chart(fig2, use_container_width=True)
 
-# 8. Tabular Summary
+# 7. Tabular Summary
 
 # Calculate Dollar Equivalent
 # 1 Mg C = 3.67 Mg Co2 emission
@@ -349,3 +367,10 @@ styled_df = summary_df.style.apply(
 )
 
 st.dataframe(styled_df, use_container_width=True)
+
+# 8. Narrative
+st.markdown("---")
+st.markdown("""
+#### Why Planet's Data Matters
+Planet's Forest Carbon Diligence product provides reliable, high-resolution data critical for identifying and monitoring carbon stock changes over time. With consistent coverage and clear trends in forest carbon accumulation/loss, developers can confidently select, validate, and manage forest carbon projects in Brazil.
+""")

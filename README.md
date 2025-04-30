@@ -29,9 +29,9 @@ planet_carbon_app.py — Main application code
 
 data — Raster layers for carbon density, canopy height, and canopy cover
 
-requirements.txt — Python libraries needed to run the app
+fly.toml — To host via fly.io
 
-environment.yml — Dependancies
+Dockerfile — Dependancies + environment setup
 
 README.md — Project description
 
