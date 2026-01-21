@@ -8,7 +8,7 @@ Author: Emma Reich
 This app demonstrates how Planet's Forest Carbon Diligence product can support forest carbon project developers in Brazil.
 It shows an interactive visualization of carbon density and carbon gain/loss over time (2013–2023) and projects future carbon loss based on observed trends.
 
-The goal is to highlight the value of Planet’s high-resolution data for identifying project areas, monitoring forest change, and quantifying carbon stocks.
+The goal is to highlight the value of high-resolution data for identifying project areas, monitoring forest change, and quantifying carbon stocks.
 
 ## App Features
 Raster Animation: View carbon density and carbon gain/loss maps year-by-year (2013–2023)
